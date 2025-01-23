@@ -1,0 +1,11 @@
+pandas==1.5.3
+numpy==1.23.5
+google-auth==2.20.0
+google-auth-oauthlib==1.0.0
+google-api-python-client==2.52.0
+pillow==9.0.1
+pytz==2023.3
+geocoder==1.38.1
+requests==2.28.1
+selenium==4.1.0
+python-dotenv==1.0.1

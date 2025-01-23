@@ -1,0 +1,20 @@
+credentials
+token
+.env  # Add this to ignore .env files
+*.env  # This will ignore any file with a .env extension (if there are multiple)
+.idea
+
+# Ignore binaries and libraries
+*.jar
+*.exe
+
+# Ignore Java Development Kit
+jdk-17_windows-x64_bin
+
+# Ignore temporary or generated files
+*.log
+*.tmp
+*.bak
+
+# Ignore Selenium JAR files
+selenium-server-*.jar
