@@ -467,19 +467,61 @@ def post(listing_data, driver):
 
 
 def renew(listing_data, driver):
-    # Example logic for renewing a listing
+    # Go to the link
     driver.get('https://accounts.craigslist.org/login/')
+
+    # Log in
     driver.find_element(By.ID, 'inputEmailHandle').send_keys(listing_data[2])
+    driver.implicitly_wait(1.5)
     driver.find_element(By.ID, 'inputPassword').send_keys(listing_data[3])
+    driver.implicitly_wait(1.5)
     driver.find_element(By.ID, 'login').click()
 
-    # Navigate to the listing and renew it
-    print(f"Renewing task: {listing_data}")
-    return {
-        'status': 'renewed',
-        'machine': MACHINE_NAME,
-        'task': listing_data[0]
-    }
+    # Go to the old listing
+    driver.get(listing_data[1])
+
+    # Get listing data
+    # lat = driver.find_element(By.ID, 'map').get_attribute("data-latitude")
+    # long = driver.find_element(By.ID, 'map').get_attribute("data-longitude")
+    category = driver.find_element(By.CSS_SELECTOR, '.category p').text
+    category = category.replace('>', "")
+    category = category.replace('<', "")
+    category = category.strip()
+    # g = geocoder.mapquest([lat, long], method='reverse', key='b7bow6CgalFYwE56sSxA4JT6BpOGqsHU')
+    # location = g.osm['addr:city'] + ', ' + g.osm['addr:state']
+    location = ''
+    curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
+    today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
+    host = listing_data[4]
+    title = driver.find_element(By.XPATH, '//*[@id="titletextonly"]').text
+
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="manage-posting"]/div[1]/table/tbody/tr[6]/td[1]/div/form/input[3]'))).click()
+    except:
+        print(f'Error, check if {listing_data[1]} is already reposted')
+
+    time.sleep(3)
+    update_stats(listing_data, driver)
+
+    new_link = driver.find_elements(By.XPATH, f"//*[contains(text(), '{title}')]")[0].get_attribute('href')
+    driver.quit()
+
+    # Return updated listing
+    output = [host, listing_data[1], 'Renew', category, new_link, location,
+              today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
+
+    # tell slack which machine posted
+    import requests
+    import json
+
+    webhookZap = f"{WEBHOOK_BASE_URL}?computername="
+    print(listing_data[5])
+    webhook_url = f"{webhookZap}{str(listing_data[5])} renewal"
+    requests.post(webhook_url, headers={'Content-Type': 'application/json'})
+
+    return output
 
 def repost(listing_data, driver):
     if len(listing_data) < 6:
