@@ -482,31 +482,75 @@ def renew(listing_data, driver):
     }
 
 def repost(listing_data, driver):
-    # Example logic for reposting a listing
+    if len(listing_data) < 6:
+        print(
+            f'Listing: {listing_data} is invalid. The code requires a row to have a task, link, email, password,'
+            f'host name, and the computer used to make the post. In that order.')
+
+    # Go to the link #driver.get(listing_data[0])
     driver.get('https://accounts.craigslist.org/login/')
+
+    # Log in
     driver.find_element(By.ID, 'inputEmailHandle').send_keys(listing_data[2])
+    driver.implicitly_wait(1.5)
     driver.find_element(By.ID, 'inputPassword').send_keys(listing_data[3])
+    driver.implicitly_wait(1.5)
     driver.find_element(By.ID, 'login').click()
 
-    # Navigate to the listing and repost it
-    print(f"Reposting task: {listing_data}")
-    return {
-        'status': 'reposted',
-        'machine': MACHINE_NAME,
-        'task': listing_data[0]
-    }
+    # Go to the old listing
+    driver.get(listing_data[1])
 
-# def update(task_result):
-#     print(task_result, "task_result===>>>")
-#     spreadsheet_id = '1eBxVRTIfnHO1miRg6grcNrprMGDZ7dvIGrEoFNDTxio'
-#     range_name = 'Results!2:1000'
-#     creds = log_in()
-#     service = build('sheets', 'v4', credentials=creds)
-#     body = {'values': [[task_result['machine'], task_result['task'], task_result['status']]]}
-#     print(body,"====================>>")
-#     result = service.spreadsheets().values().append(
-#         spreadsheetId=spreadsheet_id, range=range_name, valueInputOption='RAW', body=body).execute()
-#     print(f"Updated task results: {result}")
+    lat = driver.find_element(By.ID, 'map').get_attribute("data-latitude")
+    long = driver.find_element(By.ID, 'map').get_attribute("data-longitude")
+    category = driver.find_element(By.CSS_SELECTOR, '.category p').text
+    category = category.replace('>', "")
+    category = category.replace('<', "")
+    category = category.strip()
+    # g = geocoder.mapquest([lat, long], method='reverse', key="b7bow6CgalFYwE56sSxA4JT6BpOGqsHU")
+
+    # location = g.osm['addr:city'] + ', ' + g.osm['addr:state']
+    location = ''
+    # Repost
+    driver.find_element(By.CSS_SELECTOR, '.managebtn').click()
+    driver.implicitly_wait(3)
+    driver.find_element(By.CSS_SELECTOR, '.submit-button').click()
+
+    # Publish
+    driver.find_element(By.CSS_SELECTOR, '.button').click()
+
+    # Get new link
+    driver.implicitly_wait(5)
+    # link = driver.find_element(By.XPATH, '//*[@id="new-edit"]/div/div/ul/li[2]/a').get_attribute('href')
+    link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
+
+    # Update account stats
+    update_stats(listing_data, driver)
+
+    # Close browser
+    driver.quit()
+
+    # Return updated listing
+    curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
+    today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
+    host = listing_data[4]
+    output = [host, listing_data[1], 'Repost', category, link, location,
+              today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
+
+    # tell slack which machine reposted
+    import requests
+    import json
+    import json
+
+    webhookZap = f"{WEBHOOK_BASE_URL}?computername="
+    print(listing_data[5])
+    webhook_url = f"{webhookZap}{str(listing_data[5])} repost"
+
+    requests.post(webhook_url, headers={'Content-Type': 'application/json'})
+
+
+
+    return output
+
 
 # def update(listing_data_updated):
 #     # The ID and range of a sample spreadsheet.
