@@ -115,7 +115,7 @@ def fixed_keys(keys_to_send):
     return re.split('[^a-zA-Z]', keys_to_send)[0]
 
 def pull_tasks():
-    spreadsheet_id = '1eBxVRTIfnHO1miRg6grcNrprMGDZ7dvIGrEoFNDTxio'
+    spreadsheet_id = GOOGLE_SHEET_ID
     range_name = '2:1000'
     creds = log_in()
     service = build('sheets', 'v4', credentials=creds)
