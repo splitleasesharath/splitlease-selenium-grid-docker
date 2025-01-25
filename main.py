@@ -134,6 +134,15 @@ def set_up_browser():
     print(f"Browser launched on {MACHINE_NAME}")
     return driver
 
+def send_slack_dm(txtToSend):
+    data = {
+        'token': SLACK_TOKEN,
+        'channel': SLACK_CHANNEL_USER_ID,
+        'as_user': True,
+        'text': txtToSend
+    }
+    requests.post(url='https://slack.com/api/chat.postMessage',
+                  data=data)
 
 def get_post_data(link):
     # The ID and range of a sample spreadsheet.
@@ -574,7 +583,7 @@ def repost(listing_data, driver):
     # Get new link
     driver.implicitly_wait(5)
     # link = driver.find_element(By.XPATH, '//*[@id="new-edit"]/div/div/ul/li[2]/a').get_attribute('href')
-    link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
+    # link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
 
     try:
         link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
@@ -756,6 +765,8 @@ def main():
         except Exception as e:
             print(f"Error processing task at row {row_num}: {e}")
             traceback.print_exc()
+            logger.error(exception)
+            send_slack_dm(f"Task {task} just threw an error \n {traceback.format_exc()}")
             try:
                 driver.quit()
             except:
@@ -833,6 +844,12 @@ def update_stats(listing_data, driver):
         service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME,
                                                valueInputOption='RAW', body=value_range_body).execute()
 
-
-if __name__ == "__main__":
+# Run the code
+logging.basicConfig(filename='test.log', level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logger = logging.getLogger(__name__)
+try:
     main()
+except Exception as bigErr:
+    send_slack_dm(f"Error {traceback.format_exc()} just occurred")
+    logger.error(bigErr)
