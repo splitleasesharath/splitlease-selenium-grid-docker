@@ -1,26 +1,8 @@
 import os
-import re
-import time
-import traceback
 import socket
-from datetime import datetime
-import requests
-import pandas as pd
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-from google.auth.transport.requests import Request
-
 import io
 import os.path
 import re
-import shutil
-import sys
 import time
 from datetime import datetime, timedelta
 import geocoder
@@ -465,8 +447,7 @@ def post(listing_data, driver):
         link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
 
         curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
-        location = f"{post_data[2]}, {post_data[1].capitalize()}" if post_data[2] is not None else post_data[
-            1].capitalize()
+        location = f"{post_data[2]}, {post_data[1].capitalize()}" if post_data[2] is not None else post_data[1].capitalize()
         today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
         output = [host, listing_data[1], 'Post', category, link, location,
                   today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
