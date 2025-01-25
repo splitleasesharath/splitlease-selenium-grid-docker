@@ -451,19 +451,30 @@ def post(listing_data, driver):
     host = listing_data[4]
     # link = driver.find_element(By.XPATH, '//*[@id="new-edit"]/div/div/ul/li[2]/a').get_attribute('href')
     link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
-    curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
-    location = f"{post_data[2]}, {post_data[1].capitalize()}" if post_data[2] is not None else post_data[1].capitalize()
-    today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
-    output = [host, listing_data[1], 'Post', category, link, location,
-              today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
 
-    # Update account stats
-    update_stats(listing_data, driver)
+    try:
+        link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
 
-    # Close browser
-    driver.quit()
+        curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
+        location = f"{post_data[2]}, {post_data[1].capitalize()}" if post_data[2] is not None else post_data[
+            1].capitalize()
+        today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
+        output = [host, listing_data[1], 'Post', category, link, location,
+                  today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
 
-    return output
+        # Update account stats
+        update_stats(listing_data, driver)
+
+        # Close browser
+        driver.quit()
+
+        return output
+
+    except NoSuchElementException:
+        print(f"Could not post successfully")
+        driver.quit()
+
+
 
 
 def renew(listing_data, driver):
@@ -565,33 +576,39 @@ def repost(listing_data, driver):
     # link = driver.find_element(By.XPATH, '//*[@id="new-edit"]/div/div/ul/li[2]/a').get_attribute('href')
     link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
 
-    # Update account stats
-    update_stats(listing_data, driver)
+    try:
+        link = driver.find_element(By.XPATH, '//ul[@class="ul"]/li[2]/a').get_attribute('href')
 
-    # Close browser
-    driver.quit()
+        # Update account stats
+        update_stats(listing_data, driver)
 
-    # Return updated listing
-    curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
-    today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
-    host = listing_data[4]
-    output = [host, listing_data[1], 'Repost', category, link, location,
-              today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
+        # Close browser
+        driver.quit()
 
-    # tell slack which machine reposted
-    import requests
-    import json
-    import json
+        # Return updated listing
+        curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
+        today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
+        host = listing_data[4]
+        output = [host, listing_data[1], 'Repost', category, link, location,
+                  today_date, curr_time, listing_data[5], '-', '-', '-', listing_data[2]]
 
-    webhookZap = f"{WEBHOOK_BASE_URL}?computername="
-    print(listing_data[5])
-    webhook_url = f"{webhookZap}{str(listing_data[5])} repost"
+        # tell slack which machine reposted
+        import requests
+        import json
+        import json
 
-    requests.post(webhook_url, headers={'Content-Type': 'application/json'})
+        webhookZap = f"{WEBHOOK_BASE_URL}?computername="
+        print(listing_data[5])
+        webhook_url = f"{webhookZap}{str(listing_data[5])} repost"
 
+        requests.post(webhook_url, headers={'Content-Type': 'application/json'})
 
+        return output
 
-    return output
+    except NoSuchElementException:
+        print(f"Could not post successfully")
+        driver.quit()
+
 
 
 # def update(listing_data_updated):
@@ -667,6 +684,30 @@ def update(listing_data_updated):
     except Exception as e:
         print("An error occurred:", e)
 
+
+def wait_until(target_time):
+    """
+    Wait until the specified target time.
+
+    Parameters:
+        target_time (datetime): The time to wait until.
+    """
+    timezone = pytz.timezone("America/New_York")
+
+    # Ensure target_time is timezone-aware
+    if target_time.tzinfo is None:
+        target_time = timezone.localize(target_time)
+
+    print("Current Time (with timezone):", datetime.now(timezone))
+    print("Target Time (with timezone):", target_time)
+
+    while datetime.now(timezone) < target_time:
+        print(f"Waiting... Current time: {datetime.now(timezone)}, Target time: {target_time}")
+        time.sleep(10)  # Sleep for 10 seconds
+
+    print("Target time reached:", datetime.now(timezone))
+
+
 def main():
     tasks = pull_tasks()
     for row_num, task in enumerate(tasks):
@@ -674,9 +715,32 @@ def main():
             if len(task) not in [6, 7]:
                 print(f"Skipping invalid task at row {row_num}")
                 continue
+
+            timezone = pytz.timezone("America/New_York")
+            current_time = datetime.now(timezone)
+
+            # Format and display the current time
+            print("Current Time:", current_time.strftime("%H:%M:%S"))
+
+            # Check for scheduling if task length is 7
+            if len(task) == 7:
+                time_col = 6
+                try:
+                    print('Checking scheduled time...')
+                    post_time = datetime.strptime(task[time_col], '%m/%d/%Y %H:%M:%S')
+                    print(f"Task scheduled for: {post_time}")
+
+                    # exit()
+                    wait_until(post_time)  # Wait until the scheduled time
+                    print("Time reached, proceeding with task...")
+                except Exception as e:
+                    print(f"Invalid scheduled time format at row {row_num}: {e}")
+                    traceback.print_exc()
+                    continue
+
             driver = set_up_browser()
             task_type = task[0].lower()
-            print(task,"====>>>")
+            print(task, "====>>>")
             if task_type == 'post':
                 task_result = post(task, driver)
             elif task_type == 'renew':
@@ -686,12 +750,16 @@ def main():
             else:
                 print(f"Unknown task type: {task_type}")
                 continue
-            print(task_result, "task added successfully====>>>>>>")
+            print(task_result, "Task added successfully.")
             update(task_result)
             driver.quit()
         except Exception as e:
             print(f"Error processing task at row {row_num}: {e}")
             traceback.print_exc()
+            try:
+                driver.quit()
+            except:
+                pass
 
 
 
