@@ -21,6 +21,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+import random
 import requests
 import logging
 import traceback
@@ -76,6 +77,7 @@ def uploadImages(driver, post_data):
     if not items:
         print('No files found.')
     else:
+        random.shuffle(items)
         for item in items:
             extension = os.path.splitext(item['name'])[1]
             request = service.files().get_media(fileId=item['id'])
