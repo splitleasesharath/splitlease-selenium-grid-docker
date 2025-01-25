@@ -765,7 +765,6 @@ def main():
         except Exception as e:
             print(f"Error processing task at row {row_num}: {e}")
             traceback.print_exc()
-            logger.error(exception)
             send_slack_dm(f"Task {task} just threw an error \n {traceback.format_exc()}")
             try:
                 driver.quit()
