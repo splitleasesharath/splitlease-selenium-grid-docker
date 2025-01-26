@@ -432,11 +432,10 @@ def post(listing_data, driver):
     #tell slack which machine posted
     import requests
     import json
-    webhookZap = "https://hooks.zapier.com/hooks/catch/9700515/bz4aegb?computername="
+    webhookZap = f"{WEBHOOK_BASE_URL}?computername="
     print(listing_data[5])
-    webhook_url = webhookZap + str(listing_data[5])
+    webhook_url = f"{webhookZap}{str(listing_data[5])}"
     requests.post(webhook_url, headers={'Content-Type': 'application/json'})
-
 
 
 
