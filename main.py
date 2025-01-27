@@ -50,6 +50,7 @@ SLACK_CHANNEL_USER_ID = os.getenv('SLACK_CHANNEL_USER_ID')
 GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 WEBHOOK_BASE_URL = os.getenv('WEBHOOK_BASE_URL')
+HEREMAP_API_KEY = os.getenv('HEREMAP_API_KEY')
 
 def log_in():
     creds = None
@@ -483,15 +484,18 @@ def renew(listing_data, driver):
     driver.get(listing_data[1])
 
     # Get listing data
-    # lat = driver.find_element(By.ID, 'map').get_attribute("data-latitude")
-    # long = driver.find_element(By.ID, 'map').get_attribute("data-longitude")
+    lat = driver.find_element(By.ID, 'map').get_attribute("data-latitude")
+    long = driver.find_element(By.ID, 'map').get_attribute("data-longitude")
+
+    location = get_location(lat, long)
+
+
     category = driver.find_element(By.CSS_SELECTOR, '.category p').text
     category = category.replace('>', "")
     category = category.replace('<', "")
     category = category.strip()
     # g = geocoder.mapquest([lat, long], method='reverse', key='b7bow6CgalFYwE56sSxA4JT6BpOGqsHU')
     # location = g.osm['addr:city'] + ', ' + g.osm['addr:state']
-    location = ''
     curr_time = datetime.now(pytz.timezone('America/New_York')).strftime("%H:%M")
     today_date = datetime.now(pytz.timezone('America/New_York')).strftime("%m/%d")
     host = listing_data[4]
@@ -553,7 +557,9 @@ def repost(listing_data, driver):
     # g = geocoder.mapquest([lat, long], method='reverse', key="b7bow6CgalFYwE56sSxA4JT6BpOGqsHU")
 
     # location = g.osm['addr:city'] + ', ' + g.osm['addr:state']
-    location = ''
+
+    location = get_location(lat, long)
+
     # Repost
     driver.find_element(By.CSS_SELECTOR, '.managebtn').click()
     driver.implicitly_wait(3)
@@ -601,6 +607,37 @@ def repost(listing_data, driver):
         driver.quit()
 
 
+def get_location(lat, long):
+    url = "https://revgeocode.search.hereapi.com/v1/revgeocode"
+    params = {
+        "at": f"{lat},{long}",
+        "lang": "en-US",  # Language for the response
+        "apikey": HEREMAP_API_KEY,
+        "mode": 'retrieveAddresses'
+    }
+
+    import requests
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    data = response.json()
+    location = ''
+
+    if data.get("items"):
+        address = data["items"][0].get("address", {})
+        city = address.get("city", "")
+        state = address.get("state", "")
+
+        # Build the location string
+        if city and state:
+            location = f"{city}, {state}"
+        elif city:
+            location = city
+        elif state:
+            location = state
+        else:
+            location = "Location not found"
+
+    return location
 
 # def update(listing_data_updated):
 #     # The ID and range of a sample spreadsheet.
