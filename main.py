@@ -34,7 +34,7 @@ base64.encodestring = base64.encodebytes
 
 # Selenium Grid and dynamic hostname setup
 GRID_URL = os.getenv("GRID_URL", "http://selenium-hub:4444/wd/hub")
-MACHINE_NAME = os.getenv("MACHINE_NAME", socket.gethostname())
+# MACHINE_NAME = os.getenv("MACHINE_NAME", socket.gethostname())
 
 # Google API Scopes
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -51,6 +51,7 @@ GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 WEBHOOK_BASE_URL = os.getenv('WEBHOOK_BASE_URL')
 HEREMAP_API_KEY = os.getenv('HEREMAP_API_KEY')
+MACHINE_NAME = os.getenv('MACHINE_NAME')
 
 def log_in():
     creds = None
@@ -740,47 +741,53 @@ def main():
     tasks = pull_tasks()
     for row_num, task in enumerate(tasks):
         try:
-            if len(task) not in [6, 7]:
-                print(f"Skipping invalid task at row {row_num}")
-                continue
 
-            timezone = pytz.timezone("America/New_York")
-            current_time = datetime.now(timezone)
+            machine_col = 5
 
-            # Format and display the current time
-            print("Current Time:", current_time.strftime("%H:%M:%S"))
-
-            # Check for scheduling if task length is 7
-            if len(task) == 7:
-                time_col = 6
-                try:
-                    print('Checking scheduled time...')
-                    post_time = datetime.strptime(task[time_col], '%m/%d/%Y %H:%M:%S')
-                    print(f"Task scheduled for: {post_time}")
-
-                    # exit()
-                    wait_until(post_time)  # Wait until the scheduled time
-                    print("Time reached, proceeding with task...")
-                except Exception as e:
-                    print(f"Invalid scheduled time format at row {row_num}: {e}")
-                    traceback.print_exc()
+            if(task[machine_col]== MACHINE_NAME):
+                if len(task) not in [6, 7]:
+                    print(f"Skipping invalid task at row {row_num}")
                     continue
 
-            driver = set_up_browser()
-            task_type = task[0].lower()
-            print(task, "====>>>")
-            if task_type == 'post':
-                task_result = post(task, driver)
-            elif task_type == 'renew':
-                task_result = renew(task, driver)
-            elif task_type == 'repost':
-                task_result = repost(task, driver)
+                timezone = pytz.timezone("America/New_York")
+                current_time = datetime.now(timezone)
+
+                # Format and display the current time
+                print("Current Time:", current_time.strftime("%H:%M:%S"))
+
+                # Check for scheduling if task length is 7
+                if len(task) == 7:
+                    time_col = 6
+                    try:
+                        print('Checking scheduled time...')
+                        post_time = datetime.strptime(task[time_col], '%m/%d/%Y %H:%M:%S')
+                        print(f"Task scheduled for: {post_time}")
+
+                        # exit()
+                        wait_until(post_time)  # Wait until the scheduled time
+                        print("Time reached, proceeding with task...")
+                    except Exception as e:
+                        print(f"Invalid scheduled time format at row {row_num}: {e}")
+                        traceback.print_exc()
+                        continue
+
+                driver = set_up_browser()
+                task_type = task[0].lower()
+                print(task, "====>>>")
+                if task_type == 'post':
+                    task_result = post(task, driver)
+                elif task_type == 'renew':
+                    task_result = renew(task, driver)
+                elif task_type == 'repost':
+                    task_result = repost(task, driver)
+                else:
+                    print(f"Unknown task type: {task_type}")
+                    continue
+                print(task_result, "Task added successfully.")
+                update(task_result)
+                driver.quit()
             else:
-                print(f"Unknown task type: {task_type}")
-                continue
-            print(task_result, "Task added successfully.")
-            update(task_result)
-            driver.quit()
+                print('Wrong Machine')
         except Exception as e:
             print(f"Error processing task at row {row_num}: {e}")
             traceback.print_exc()
