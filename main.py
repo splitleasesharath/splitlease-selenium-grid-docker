@@ -208,7 +208,9 @@ def post(listing_data, driver):
         pass
 
     # Select the housing category
-    driver.find_element(By.XPATH, f"//*[contains(text(), 'housing offered')]").click()
+    # driver.find_element(By.XPATH, f"//*[contains(text(), 'housing offered')]").click()
+
+    driver.find_element(By.XPATH, f"//form[@class='picker']//input[@type='radio' and @name='id' and @value='ho']").click()
 
     # If category is given use that category
     if post_data[3]:
@@ -426,7 +428,8 @@ def post(listing_data, driver):
 
     # Submit
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button#doneWithImages.bigbutton'))).click()
+        EC.element_to_be_clickable((By.XPATH, f"//button[@class='done' and @id='doneWithImages' and @name='go']"))
+    ).click()
 
     # Post
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.button'))).click()
